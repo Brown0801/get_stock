@@ -1,6 +1,7 @@
 import pandas as pd
 import sqlite3
 import parmap
+from datetime import datetime
 
 def get_stock_daily(code):
 
@@ -42,23 +43,35 @@ def get_stock_daily(code):
 
         date_idx = data.index.tolist()
         idx_num = date_idx.index(last_date)
+        now = datetime.now()
 
-        #마지막 날짜 이후의 데이터만 분리
-        #앞에 1 부터는 아직 7시 안넘었을 때 사용
-        # data1 = data[:idx_num]
-        data1 = data[1:idx_num]
+        #now=datetime.now()  #실행시점의 날짜
+        #date_idx[0]         #새로불러온 데이터의 마지막 날짜
+        #last_date           #저장된 데이터의 마지막 날짜
 
-
-        #기존 DB에 APPEND로 저장 - 이후에 DB 데이터 활용 시 무조건 정렬 필요함
-        con_1 = sqlite3.connect('.\Json\stocks_price_vol.db')
-        data1.to_sql(code, con_1, if_exists='append')
-        #print(data1)
-        # print(code, "종료")
+        # 불러온 data의 최근 날짜가 오늘 날짜와 같다->19시이전이다?->전날까지만저장/19시이후다?->오늘까지저장
+        # 불러온 data의 최근 날짜가 오늘 날짜와 같지않다->끝날까지저장
+        if date_idx[0] == now.strftime("%Y.%m.%d"):
+            if now.hour < 19:
+                data1 = data[1:idx_num]
+                con_1 = sqlite3.connect('.\Json\stocks_price_vol.db')
+                data1.to_sql(code, con_1, if_exists='append')
+                # print("당일 19시 이전 데이터")
+            else:
+                data1 = data[:idx_num]
+                con_1 = sqlite3.connect('.\Json\stocks_price_vol.db')
+                data1.to_sql(code, con_1, if_exists='append')
+                # print("당일 19시 이후 데이터")
+        else:
+            data1 = data[:idx_num]
+            con_1 = sqlite3.connect('.\Json\stocks_price_vol.db')
+            data1.to_sql(code, con_1, if_exists='append')
+            # print("다른 날 데이터")
 
     except:
         pass
-        # print(code, "에러")
-
+#         print(code, "에러")
+#
 # get_stock_daily('095570')
 
 

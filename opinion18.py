@@ -4,9 +4,6 @@ from bs4 import BeautifulSoup
 import parmap
 import itertools
 import sqlite3
-import csv
-
-
 
 def get_kind(code):
     url = 'https://navercomp.wisereport.co.kr/v2/company/c1070001.aspx?cmp_cd=' + code
@@ -115,8 +112,6 @@ def buy(date, code):
 
         # movable = (get_move(code)/get_issue(code))*100
 
-
-
         # print(cci[idx_num], bollin_plus[idx_num], avg_5[idx_num], avg_20[idx_num], avg_60[idx_num], avg_120[idx_num])
 
         ######################################기존 매수판단######################################
@@ -155,19 +150,24 @@ def buy(date, code):
         #     pass
 
         ####### 거래량 기준 #### 이게 평균 수익률이 훨씬 높음
-        if df['거래량'].rolling(window=60).mean()[idx_num] * 5 < df['거래량'][idx_num] \
+        if df['거래량'].rolling(window=60).mean()[idx_num] * 3 < df['거래량'][idx_num] \
             and df['종가'][idx_num] <= bollin_plus[idx_num] \
-            and df['종가'][idx_num] >= avg_20[idx_num] :
+            and df['종가'][idx_num] >= avg_20[idx_num]:
 
             df_after = df[idx_num + 1:idx_num + 41]  # 40일 이내로 한정
             price_max = df_after['종가'].max()  # 최고가(종가기준)
             max_date = df_after['종가'].idxmax()  # 최고가 날자
             earn_high = int(((price_max - df['종가'][idx_num]) / df['종가'][idx_num]) * 100)  # 최고가(종가기준) 달성시 수익률
 
-            per = int(df['종가'][idx_num]/get_eps(code))
-            pbr = int(df['종가'][idx_num]/get_bps(code))
+            # per = int(df['종가'][idx_num]/get_eps(code))
+            # pbr = int(df['종가'][idx_num]/get_bps(code))
 
-            print(code, date, max_date, per, pbr, earn_high)
+
+            #탐색결과를 df로 생성하고 csv로 저장한다
+            data = {"종목코드":[code], "기준일":[date], "최고가일":[max_date], "최고수익률":[earn_high]}
+            data2 = pd.DataFrame(data, columns=["종목코드","기준일","최고가일","최고수익률"])
+            data2.to_csv('analyze_result.csv', header=False, index=None, mode='a')
+
 
         else:
             pass
@@ -176,101 +176,49 @@ def buy(date, code):
     except:
         pass
 
-def sell(date, code):
-    try:
-        ######################################데이터 불러오기 & 가공######################################
-        con = sqlite3.connect('./Json/stocks_price_vol.db')
-        df = pd.read_sql("SELECT * FROM" + " " + "'" + code + "'", con, index_col='날짜')
-        df = df.sort_index(ascending=True)
-
-        # 날짜 인덱싱 넘버 구하기
-        date_idx = df.index.tolist()
-        idx_num = date_idx.index(date)
-
-        edit = lambda x: float(x.replace('%', ''))
-        df['등락률'] = df['등락률'].apply(edit)
-
-        foreigner = df['외국인보유율'].apply(edit)
-
-        edit2 = lambda x: float(x.replace(',', ''))
-        df['기관순매매'] = df['기관순매매'].apply(edit2)
-        df['외국인순매매'] = df['외국인순매매'].apply(edit2)
-
-        avg_120 = df['종가'].rolling(window=120).mean()
-
-
-        ###########일단 최대값으로############# (매도 기준 잡기 전 까지)
-        df_after = df[idx_num +1:idx_num +41]  # 40일 이내로 한정
-        price_max = df_after['종가'].max()  # 최고가(종가기준)
-        max_date = df_after['종가'].idxmax()  # 최고가 날자
-        earn_high = int(((price_max - df['종가'][idx_num]) / df['종가'][idx_num]) * 100)  # 최고가(종가기준) 달성시 수익률
-
-        # print(code, date, max_date, earn_high)
-        # print(earn_high)
-
-        name = get_name(code)
-
-        data = [code, name, date, max_date, earn_high]
-        print(data)
-
-
-
-        # for i in range(len(df[idx_num:].index)):
-        #     idx_num2 = idx_num + i
-
-            ###########거래량 기준 매도#############
-            # if df['거래량'][idx_num2] <= df['거래량'].rolling(window=60).mean()[idx_num2] *0.5 \
-            #     and df['등락률'][idx_num2] < 0:
-
-            ###########이평선 기준 매도############  -> 처참한 결
-            # if df['종가'][idx_num2] <= avg_120[idx_num2]:
-            #         p_buy = df['종가'][idx_num+1]
-            #         p_sell = df['종가'][idx_num2+1]
-            #         earn_rate = int(((p_sell - p_buy)/p_buy)*100)
-            #         print(date, df.index[idx_num2], code, "sell", earn_rate)
-
-
-        #######################결과를 csv로 저장##################################
-        # f = open('analistics_20200428_b.csv', 'a', newline="", encoding='ANSI')
-        # wr = csv.writer(f)
-        # wr.writerow(data)
-        # f.close()
-
-
-    except:
-        pass
-
-
 
 def excute(date, code):  #매수-매도 실행
     buy(date, code)
-    # sell(date, code)
 
 
+def anal():  #csv로 저장된 탐색결과를 불러와서 평균최고수익률을 계산 및 출력한다
+    result = pd.read_csv('analyze_result.csv')
+    earn_h = result['최고수익률']
+    avg_h = earn_h.mean()
+    print(avg_h)
 
 
-# excute('2019.12.12', '095570')
+# excute('2019.12.12', '095570')    ####테스트용
 
 #다중실행 함수
 def exec18():
     #date 불러오기
-    dates = pd.read_excel('workingdays_201912.xlsx', converters={'영업일': str})
+    dates = pd.read_excel('workingdays_2020.xlsx', converters={'영업일': str})
     date1 = dates['영업일']
-    # date1 = ['2019.12.02']
+    # date1 = ['2019.12.02']    ####테스트용
 
     #code 불러오기
     codes = pd.read_excel('코드리스트.xlsx', converters={'종목코드': str})
     code = codes['종목코드']
-    # code = ['011790']
+    # code = ['011790']    ####테스트용
 
     #불러온 date 라인별로 실행
     for date in date1:
-        # print(date)
+        print(date)
         date = [date]
         input_list = list(itertools.product(date, code))
-        parmap.starmap(excute, input_list, pm_pbar=False)
+        parmap.starmap(excute, input_list, pm_pbar=True)
 
 
 #실제 실행코드
 if __name__ == '__main__':
+    ### 실행할때 마다 미리 탐색결과 저장할 csv 파일을 생성한다 (header삽입용)
+    ddd = pd.DataFrame(columns=["종목코드", "기준일", "최고가일", "최고수익률"])
+    ddd.to_csv('analyze_result.csv', header=True, index=None, encoding='utf-8-sig', mode='w')
+
+    ### 탐색실행
     exec18()
+
+    ### 평균계산 실행행
+    anal()
+
