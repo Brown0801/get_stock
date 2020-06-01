@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import parmap
 import itertools
 import sqlite3
+import MACD
 
 def get_kind(code):
     url = 'https://navercomp.wisereport.co.kr/v2/company/c1070001.aspx?cmp_cd=' + code
@@ -149,41 +150,38 @@ def buy(date, code):
         # else:
         #     pass
 
-        # ####### 거래량 기준 #### 이게 평균 수익률이 훨씬 높음
-        # if df['거래량'].rolling(window=60).mean()[idx_num] * 3 < df['거래량'][idx_num] \
-        #     and df['종가'][idx_num] <= bollin_plus[idx_num] \
-        #     and df['종가'][idx_num] >= avg_20[idx_num]:
-        #
-        #     df_after = df[idx_num + 1:idx_num + 41]  # 40일 이내로 한정
-        #     price_max = df_after['종가'].max()  # 최고가(종가기준)
-        #     max_date = df_after['종가'].idxmax()  # 최고가 날자
-        #     earn_high = int(((price_max - df['종가'][idx_num]) / df['종가'][idx_num]) * 100)  # 최고가(종가기준) 달성시 수익률
-        #
-        #     # per = int(df['종가'][idx_num]/get_eps(code))
-        #     # pbr = int(df['종가'][idx_num]/get_bps(code))
-        #
-        #     # 탐색결과를 df로 생성하고 csv로 저장한다
-        #     data = {"종목코드": [code], "기준일": [date], "최고가일": [max_date], "최고수익률": [earn_high]}
-        #     data2 = pd.DataFrame(data, columns=["종목코드", "기준일", "최고가일", "최고수익률"])
-        #     data2.to_csv('analyze_result.csv', header=False, index=None, mode='a')
+        ####### 거래량 기준 #### 이게 평균 수익률이 훨씬 높음률    하 이거 모르겠다
+        if df['거래량'][idx_num -1] * 5 < df['거래량'][idx_num] :
 
+            df_after = df[idx_num + 1:idx_num + 41]  # 20일 이내로 한정
+            price_max = df_after['종가'].max()  # 최고가(종가기준)
+            max_date = df_after['종가'].idxmax()  # 최고가 날자
+            earn_high = int(((price_max - df['종가'][idx_num]) / df['종가'][idx_num]) * 100)  # 최고가(종가기준) 달성시 수익률
 
-        #조건에 해당하는 종목을 종가에 사서 다음날 고가에 판
-        if df['거래량'].rolling(window=60).mean()[idx_num] * 5 < df['거래량'][idx_num] \
-            and get_issue(code)*df['종가'][idx_num -1] >= 100000000000:
+            # per = int(df['종가'][idx_num]/get_eps(code))
+            # pbr = int(df['종가'][idx_num]/get_bps(code))
 
-            price_buy = df['종가'][idx_num]
-            price_sell = df['고가'][idx_num+1]
-            earn = int(((price_sell-price_buy)/price_buy)*100)
-
-            date_sell = df.index[idx_num+1]
-
-            # print(code, date, date_sell, earn)
-
-            #탐색결과를 df로 생성하고 csv로 저장한다
-            data = {"종목코드":[code], "매수일":[date], "매도일":[date_sell], "수익률":[earn]}
-            data2 = pd.DataFrame(data, columns=["종목코드","매수일","매도일","수익률"])
+            # 탐색결과를 df로 생성하고 csv로 저장한다
+            data = {"종목코드": [code], "기준일": [date], "최고가일": [max_date], "최고수익률": [earn_high]}
+            data2 = pd.DataFrame(data, columns=["종목코드", "기준일", "최고가일", "최고수익률"])
             data2.to_csv('analyze_result.csv', header=False, index=None, mode='a')
+
+
+        # #조건에 해당하는 종목을 종가에 사서 다음날 고가에 판다
+        # if df['거래량'].rolling(window=60).mean()[idx_num] * 5 < df['거래량'][idx_num]:
+        #
+        #     price_buy = df['종가'][idx_num]
+        #     price_sell = df['고가'][idx_num+1]
+        #     earn = int(((price_sell-price_buy)/price_buy)*100)
+        #
+        #     date_sell = df.index[idx_num+1]
+        #
+        #     # print(code, date, date_sell, earn)
+        #
+        #     #탐색결과를 df로 생성하고 csv로 저장한다
+        #     data = {"종목코드":[code], "매수일":[date], "매도일":[date_sell], "수익률":[earn]}
+        #     data2 = pd.DataFrame(data, columns=["종목코드","매수일","매도일","수익률"])
+        #     data2.to_csv('analyze_result.csv', header=False, index=None, mode='a')
 
 
         else:
@@ -200,7 +198,7 @@ def excute(date, code):  #매수-매도 실행
 
 def anal():  #csv로 저장된 탐색결과를 불러와서 평균최고수익률을 계산 및 출력한다
     result = pd.read_csv('analyze_result.csv')
-    earn_h = result['수익률']
+    earn_h = result['최고수익률']
     avg_h = earn_h.mean()
     print(avg_h)
 
@@ -230,7 +228,7 @@ def exec18():
 #실제 실행코드
 if __name__ == '__main__':
     ### 실행할때 마다 미리 탐색결과 저장할 csv 파일을 생성한다 (header삽입용)
-    ddd = pd.DataFrame(columns=["종목코드", "매수일", "매도일", "수익률"])
+    ddd = pd.DataFrame(columns=["종목코드", "기준일", "최고가일", "최고수익률"])
     ddd.to_csv('analyze_result.csv', header=True, index=None, encoding='utf-8-sig', mode='w')
 
     ### 탐색실행
