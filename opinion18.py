@@ -151,11 +151,12 @@ def buy(date, code):
         #     pass
 
         ####### 거래량 기준 #### 이게 평균 수익률이 훨씬 높음률    하 이거 모르겠다
-        if df['거래량'][idx_num -1] * 5 < df['거래량'][idx_num] \
+        if df['거래량'].rolling(window=20).mean()[idx_num -1] * 5 < df['거래량'][idx_num] \
             and df['종가'][idx_num] > avg_5[idx_num] and df['종가'][idx_num] > avg_60[idx_num] \
             and df['저가'][idx_num] > avg_5[idx_num] \
             and avg_5[idx_num] > avg_20[idx_num] \
-            and df['고가'][idx_num] < bollin_plus[idx_num] and df['저가'][idx_num] > bollin_minus[idx_num] :
+            and df['고가'][idx_num] < bollin_plus[idx_num] and df['저가'][idx_num] > bollin_minus[idx_num] \
+            and df['종가'][idx_num]*get_issue(code) >= 30000000000 :
 
             price_buy = df['종가'][idx_num]
             df_after = df[idx_num + 1:idx_num + 21]  # 20일 이내로 한정
@@ -215,7 +216,7 @@ def exec18():
     #date 불러오기
     dates = pd.read_excel('workingdays_201912.xlsx', converters={'영업일': str})
     date1 = dates['영업일']
-    # date1 = ['2019.12.02']    ####테스트용
+    # date1 = ['2020.06.03']    ####테스트용
 
     #code 불러오기
     codes = pd.read_excel('코드리스트.xlsx', converters={'종목코드': str})
