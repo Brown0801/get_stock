@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 import parmap
 import itertools
 import sqlite3
-import MACD
 
 def get_kind(code):
     url = 'https://navercomp.wisereport.co.kr/v2/company/c1070001.aspx?cmp_cd=' + code
@@ -150,6 +149,8 @@ def buy(date, code):
         # else:
         #     pass
 
+        high_52 = df['고가'][idx_num - 241: idx_num - 1].max()
+
         ####### 거래량 기준 #### 이게 평균 수익률이 훨씬 높음률    하 이거 모르겠다
         if df['거래량'].rolling(window=20).mean()[idx_num -1] * 5 < df['거래량'][idx_num] \
             and df['종가'][idx_num] > avg_5[idx_num] and df['종가'][idx_num] > avg_60[idx_num] \
@@ -157,12 +158,15 @@ def buy(date, code):
             and avg_5[idx_num] > avg_20[idx_num] \
             and df['고가'][idx_num] < bollin_plus[idx_num] and df['저가'][idx_num] > bollin_minus[idx_num] \
             and df['종가'][idx_num]*get_issue(code) >= 30000000000 :
+            # and high_52 <= df['종가'][idx_num] :
 
-            price_buy = df['종가'][idx_num]
+            price_buy = df['종가'][idx_num +1]
             df_after = df[idx_num + 1:idx_num + 21]  # 20일 이내로 한정
             price_max = df_after['고가'].max()  # 최고가(고가기준)
             max_date = df_after['고가'].idxmax()  # 최고가 날자
             earn_high = int(((price_max - price_buy) / price_buy) * 100)  # 최고가(종가기준) 달성시 수익률
+
+
 
             # per = int(df['종가'][idx_num]/get_eps(code))
             # pbr = int(df['종가'][idx_num]/get_bps(code))
