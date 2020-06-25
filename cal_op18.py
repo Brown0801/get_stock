@@ -110,91 +110,49 @@ def buy(date, code):
 
         df['거래대금'] = df['거래량'] * df['종가']
 
-        # movable = (get_move(code)/get_issue(code))*100
+        # movable = int((get_move(code)/get_issue(code))*100)
 
-        # print(cci[idx_num], bollin_plus[idx_num], avg_5[idx_num], avg_20[idx_num], avg_60[idx_num], avg_120[idx_num])
 
-        ######################################기존 매수판단######################################
-
-        # if cci[idx_num] > 0 and cci[idx_num -1] < 0 \
-        #         and df['종가'][idx_num] <= bollin_plus[idx_num] \
-        #         and avg_5[idx_num] >= avg_20[idx_num] >= avg_60[idx_num] >= avg_120[idx_num]:
-        #
-        #     #이동평균선 수렴 전략은 오히려 수익률이 낮게 나옴
-        #
-        #     # print(date, code, get_name(code), get_kind(code), "buy")
-        #     # return code, date
-        #
-        # # ########이동평균선 수렴 + 거래량 기준 전략##################
-        # # if df['거래량'].rolling(window=60).mean()[idx_num -1] *3 <= df['거래량'][idx_num] \
-        # #         and avg_20[idx_num] * 1.1 >= avg_5[idx_num] >= avg_20[idx_num] \
-        # #         and avg_60[idx_num] * 1.1 >= avg_20[idx_num] >= avg_60[idx_num] \
-        # #         and avg_120[idx_num] * 1.1 >= avg_60[idx_num] >= avg_120[idx_num] \
-        # #         and avg_240[idx_num] * 1.1 >= avg_120[idx_num] >= avg_240[idx_num] :
-        # #     p_buy = df['종가'][idx_num +1]
-        # #     # print(date, code, "buy", p_buy)
-        #
-        #
-        #     df_after = df[idx_num + 1:idx_num + 41]  # 40일 이내로 한정
-        #     price_max = df_after['종가'].max()  # 최고가(종가기준)
-        #     max_date = df_after['종가'].idxmax()  # 최고가 날자
-        #     earn_high = int(((price_max - df['종가'][idx_num]) / df['종가'][idx_num]) * 100)  # 최고가(종가기준) 달성시 수익률
-        #
-        #     print(code, get_name(code), date, max_date, df['종가'][idx_num], ((get_issue(code)*df['종가'][idx_num])/100000000), movable, earn_high)
-        #
-        #
-        #     return code, date
-        #
-        #
-        # else:
-        #     pass
-
-        high_52 = df['고가'][idx_num - 241: idx_num - 1].max()
 
         ####### 거래량 기준 #### 이게 평균 수익률이 훨씬 높음률    하 이거 모르겠다
         if df['거래량'].rolling(window=20).mean()[idx_num -1] * 5 < df['거래량'][idx_num] \
-            and df['종가'][idx_num] > avg_5[idx_num] and df['종가'][idx_num] > avg_60[idx_num] \
-            and df['저가'][idx_num] > avg_5[idx_num] \
-            and avg_5[idx_num] > avg_20[idx_num] \
-            and df['고가'][idx_num] < bollin_plus[idx_num] and df['저가'][idx_num] > bollin_minus[idx_num] \
-            and df['종가'][idx_num]*get_issue(code) >= 30000000000 \
-            and df['종가'][idx_num +1] <= bollin_plus[idx_num+1] :
+            and int(df['거래대금'].rolling(window=20).mean()[idx_num -1] / 100000000) <= 10 \
+            and df['고가'][idx_num] < bollin_plus[idx_num] \
+            and avg_5[idx_num -1] < avg_5[idx_num] \
+            and df['종가'][idx_num] > avg_5[idx_num] and df['종가'][idx_num] > avg_60[idx_num] :
+                # and df['거래량'][idx_num] > df['거래량'][idx_num +1] \
+
+            # and df['종가'][idx_num] >= df['시가'][idx_num +1] :
+            # and df['종가'][idx_num] * get_issue(code) <= 100000000000 :
+            #     and df['거래대금'].rolling(window=20).max()[idx_num - 1] < 500000000 \
+
+                    # and df['종가'][idx_num] > avg_5[idx_num] and df['종가'][idx_num] > avg_60[idx_num] \
+            # and df['저가'][idx_num] > avg_5[idx_num] \
+            # and avg_5[idx_num] > avg_20[idx_num] > avg_60[idx_num] \
+            # and df['고가'][idx_num] < bollin_plus[idx_num] and df['저가'][idx_num] > bollin_minus[idx_num] \
+            # and df['종가'][idx_num +1] <= bollin_plus[idx_num+1] \
+            # and df['종가'][idx_num]*get_issue(code) <= 100000000000 \
+
+
+
+            # and df['거래량'][idx_num] * 0.5 <= df['거래량'][idx_num +1] \
+
+
+
             # and high_52 <= df['종가'][idx_num] :
 
-            price_buy = df['종가'][idx_num +1]
-            df_after = df[idx_num + 1:]  # 20일 이내로 한정
+
+
+
+
+            price_buy = df['종가'][idx_num+1]
+            df_after = df[idx_num + 1:idx_num +21]  # 20일 이내로 한정
             price_max = df_after['고가'].max()  #222 최고가(고가기준)
             max_date = df_after['고가'].idxmax()  # 최고가 날자
             earn_high = int(((price_max - price_buy) / price_buy) * 100)  # 최고가(종가기준) 달성시 수익률
 
-            print(code, get_name(code), date, max_date, earn_high)
+            print(earn_high, code, get_name(code), date, max_date)
 
-
-
-            # per = int(df['종가'][idx_num]/get_eps(code))
-            # pbr = int(df['종가'][idx_num]/get_bps(code))
-
-            # # 탐색결과를 df로 생성하고 csv로 저장한다
-            # data = {"종목코드": [code], "기준일": [date], "최고가일": [max_date], "최고수익률": [earn_high]}
-            # data2 = pd.DataFrame(data, columns=["종목코드", "기준일", "최고가일", "최고수익률"])
-            # data2.to_csv('analyze_result.csv', header=False, index=None, mode='a')
-
-
-        # #조건에 해당하는 종목을 종가에 사서 다음날 고가에 판다
-        # if df['거래량'].rolling(window=60).mean()[idx_num] * 5 < df['거래량'][idx_num]:
-        #
-        #     price_buy = df['종가'][idx_num]
-        #     price_sell = df['고가'][idx_num+1]
-        #     earn = int(((price_sell-price_buy)/price_buy)*100)
-        #
-        #     date_sell = df.index[idx_num+1]
-        #
-        #     # print(code, date, date_sell, earn)
-        #
-        #     #탐색결과를 df로 생성하고 csv로 저장한다
-        #     data = {"종목코드":[code], "매수일":[date], "매도일":[date_sell], "수익률":[earn]}
-        #     data2 = pd.DataFrame(data, columns=["종목코드","매수일","매도일","수익률"])
-        #     data2.to_csv('analyze_result.csv', header=False, index=None, mode='a')
 
 
         else:
@@ -221,7 +179,7 @@ def anal():  #csv로 저장된 탐색결과를 불러와서 평균최고수익�
 #다중실행 함수
 def exec18():
     #date 불러오기
-    dates = pd.read_excel('workingdays_202005.xlsx', converters={'영업일': str})
+    dates = pd.read_excel('workingdays_201912.xlsx', converters={'영업일': str})
     date1 = dates['영업일']
     # date1 = ['2020.06.01', '2020.06.02', '2020.06.03', '2020.06.04', '2020.06.05', '2020.06.08', '2020.06.09', '2020.06.10', '2020.06.11', '2020.06.12', '2020.06.15', '2020.06.16', '2020.06.17', '2020.06.18']    ####테스트용
 
