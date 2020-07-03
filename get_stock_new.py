@@ -27,7 +27,7 @@ def get_price(code, page):
 def append_price():
 
     # codes = pd.read_excel('코드리스트2.xlsx', converters={'종목코드':str})['종목코드']
-    codes = ['009810']
+    codes = ['095570']
     pages = range(1,1000)
 
     input_list = list(itertools.product(codes, pages))
@@ -56,6 +56,7 @@ def sum_price(code):
 if __name__ == "__main__":
     append_price()
 
-codes = pd.read_excel('코드리스트2.xlsx', converters={'종목코드':str})['종목코드']
-for code in codes:
-    sum_price(code)
+    # codes = pd.read_excel('코드리스트2.xlsx', converters={'종목코드':str})['종목코드']
+    codes = ['095570']
+    for code in codes:
+        sum_price(code)
