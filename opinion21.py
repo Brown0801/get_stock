@@ -3,6 +3,19 @@ import sqlite3
 import parmap
 import itertools
 
+def cal_obv(code):
+    path = "./temp/" + code + ".db"
+    con = sqlite3.connect(path)
+    df = pd.read_sql("SELECT * FROM price", con, index_col="날짜").sort_index(ascending=True)
+
+    df['change'] = (df['시가'] - df['종가'])/abs(df['시가']-df['종가'])
+    df['base'] = df['거래량'] * df['change']
+    df['OBV'] = df['base'].cumsum()
+
+    obv = df['OBV']
+
+    return obv
+
 
 def cal_op21(code, date):
 
@@ -55,6 +68,11 @@ def cal_op21(code, date):
             psy_low = int((a * idx_num) + b)
             psy_high = int(psy_low * 1.3)
 
+        change = int(((present_p - past_p)/present_p)*100)
+
+
+        # obv = cal_obv(code)
+
 
 
         #매수판단
@@ -64,7 +82,7 @@ def cal_op21(code, date):
             and (present_p >= psy_low and present_p <= psy_high) \
             and a > 0 \
             and present_p > (price[['시가', '종가']][idx_num - 5:idx_num].max()).max() \
-            and ((present_p - past_p)/present_p)*100 >= 3 \
+            and change >= 3 \
             and price['거래량'][idx_num] >= avg_vol[idx_num -1] * 2 \
                 :
 
@@ -81,14 +99,19 @@ def cal_op21(code, date):
             #
             #         print(earn_high, code, name, date, date2, max_date, int(present_p * infos['상장주식수'] / 100000000))
 
-
+            buy_p = price['종가'][idx_num +1]
 
             df_after = price[idx_num + 1:idx_num + 40]  # 40일 이내로 한정
             price_max = df_after['고가'].max()  # 222 최고가(고가기준)
             max_date = df_after['고가'].idxmax()  # 최고가 날자
-            earn_high = int(((price_max - present_p) / present_p) * 100)  # 최고가(종가기준) 달성시 수익률
+            earn_high = int(((price_max - buy_p) / buy_p) * 100)  # 최고가(종가기준) 달성시 수익률
 
-            print(earn_high, code, name, date, max_date, int(present_p*infos['상장주식수']/100000000))
+            mkt_vol = int(present_p*infos['상장주식수']/100000000)
+            move_vol = int(infos['유동주식수']*present_p/100000000)
+            ratio = int((move_vol/mkt_vol)*100)
+            candle = int(((price['고가'][idx_num] - price['저가'][idx_num]) / price['저가'][idx_num])*100)
+
+            print(earn_high, code, name, date, max_date, ratio, change, candle)
 
     except:
         # print(code, date, "에러")
