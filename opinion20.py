@@ -33,9 +33,13 @@ def opinion20(date):
                     trade_vol = price['거래대금'].rolling(window=5).sum()[idx_num]
 
 
-                    price_after = price[idx_num+1 : idx_num +21]
-                    price_max = price_after['고가'].max()
-                    max_date = price_after['고가'].idxmax()
+                    # price_after = price[idx_num+1 : idx_num +21]
+                    # price_max = price_after['고가'].max()
+                    # max_date = price_after['고가'].idxmax()
+
+                    price_max = price['종가'][idx_num + 20]
+                    max_date = price.index[idx_num + 20]
+
 
 
                     earn = int(((price_max - price['종가'][idx_num])/price['종가'][idx_num])*100)
@@ -52,7 +56,7 @@ def opinion20(date):
             min = df3['mkt_vol'].idxmin()
             name = df2['기업명'][min]
             earn = df3['earn'][min]
-            print(kind, "/", name, "/", min, "/", date, "/", max_date, "/", int(df3['trade_vol'].sum()/100000000), "/", earn, df3['buy']
+            print(kind, "/", name, "/", min, "/", date, "/", max_date, "/", int(df3['trade_vol'].sum()/100000000), "/", earn, df3['buy_price'][min], df3['max_price'][min])
 
         except:
             print(kind, "여긴없데")
