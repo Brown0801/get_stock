@@ -35,16 +35,23 @@ def cal_op21(code, date):
 
         #심리적 저점 기준점 구하기
 
-        # low_p_240 = price['종가'][idx_num-720:idx_num].sort_values(ascending=True)[0]   #당일을 포함하지 않는다 (포함시 idx_num +1 까지로 바꿔야함)
-        # low_d_240 = date_idx.index(price['종가'][idx_num-720:idx_num].sort_values(ascending=True).index[0])
-        # low_p_20 = price['종가'][idx_num-720:idx_num].sort_values(ascending=True)[1]
-        # low_d_20 = date_idx.index(price['종가'][idx_num-720:idx_num].sort_values(ascending=True).index[1])
+        # low_p_240 = price['종가'][idx_num-240:idx_num].sort_values(ascending=True)[0]   #당일을 포함하지 않는다 (포함시 idx_num +1 까지로 바꿔야함)
+        # low_d_240 = date_idx.index(price['종가'][idx_num-240:idx_num].sort_values(ascending=True).index[0])
+        # low_p_20 = price['종가'][idx_num-240:idx_num].sort_values(ascending=True)[1]
+        # low_d_20 = date_idx.index(price['종가'][idx_num-240:idx_num].sort_values(ascending=True).index[1])
 
 
         low_p_240 = price['종가'][idx_num-240:idx_num].min()   #당일을 포함하지 않는다 (포함시 idx_num +1 까지로 바꿔야함)
         low_d_240 = date_idx.index(price['종가'][idx_num-240:idx_num].idxmin())
         low_p_20 = price['종가'][idx_num-20:idx_num].min()
         low_d_20 = date_idx.index(price['종가'][idx_num-20:idx_num].idxmin())
+
+        #주가평균선 구하기
+        avg_5 = price['종가'].rolling(window=5).mean()
+        avg_20 = price['종가'].rolling(window=20).mean()
+        avg_60 = price['종가'].rolling(window=60).mean()
+        avg_120 = price['종가'].rolling(window=120).mean()
+        avg_240 = price['종가'].rolling(window=240).mean()
 
 
 
@@ -55,7 +62,7 @@ def cal_op21(code, date):
 
         present_p = price['종가'][idx_num]
         past_p = price['종가'][idx_num -1]
-        avg_vol = price['거래량'].rolling(window=5).mean()
+        avg_vol = price['거래량'].rolling(window=20).mean()
 
         if (low_d_20 - low_d_240) == 0 :
             psy_low = low_p_240
@@ -71,37 +78,112 @@ def cal_op21(code, date):
         change = int(((present_p - past_p)/present_p)*100)
 
 
+        avg_60 = price['종가'].rolling(window=60).mean()
+        std_60 = price['종가'].rolling(window=60).std()
+        bollin_plus = avg_60 + std_60 * 2
+        bollin_minus = avg_60 - std_60 * 2
+
+
         # obv = cal_obv(code)
 
-
+        box = int(((price['종가'][idx_num - 60: idx_num].max() - price['종가'][idx_num - 60: idx_num].min()) / price['종가'][
+                                                                                                           idx_num - 60: idx_num].min()) * 100)
 
         #매수판단
         #             and present_p > price['고가'][idx_num-5:idx_num].max() \
 
-        if  eps > 0 \
-            and (present_p >= psy_low and present_p <= psy_high) \
+        if box <= 30 \
+            and present_p > price['종가'][idx_num - 60: idx_num].max() \
+            and price['거래량'][idx_num] >= avg_vol[idx_num -1] * 5 \
             and a > 0 \
-            and present_p > (price[['시가', '종가']][idx_num - 5:idx_num].max()).max() \
-            and change >= 3 \
-            and price['거래량'][idx_num] >= avg_vol[idx_num -1] * 2 \
+            and (present_p >= psy_low and present_p <= psy_high) \
+            and eps > 0 \
                 :
 
-            # for i in range(1,20):
+
+
+
+        # if eps > 0 \
+        #     and (present_p >= psy_low and present_p <= psy_high) \
+        #     and a > 0 \
+        #     and present_p > (price[['시가', '종가']][idx_num - 20:idx_num].max()).max() \
+        #     and change >= 3 \
+        #     and price['거래량'][idx_num] >= avg_vol[idx_num -1] * 5 \
+        #     and avg_240[idx_num -1] < avg_240[idx_num] \
+        #         :
+
+
+            # for i in range(1,60):
             #     idx_num2 = idx_num + i
-            #     buy_p = price['종가'][idx_num2]
+            #     price2 = price['종가'][idx_num2]
             #     date2 = date_idx[idx_num2]
-            #     if buy_p < price['종가'].rolling(window=5).mean()[idx_num2]:
             #
-            #         df_after = price[idx_num2:idx_num2 + 20]  # 40일 이내로 한정
-            #         price_max = df_after['고가'].max()  # 222 최고가(고가기준)
-            #         max_date = df_after['고가'].idxmax()  # 최고가 날자
-            #         earn_high = int(((price_max - buy_p) / buy_p) * 100)  # 최고가(종가기준) 달성시 수익률
+            #     if buy_p < avg_5[idx_num2] \
+            #         and price['거래량'][idx_num2] / avg_vol[idx_num2] >= 2 \
+            #             :
+            #         price_max2 = price['고가'][idx_num2+1:idx_num2+61].max()
+            #         max_date2 = price['고가'][idx_num2+1:idx_num2+61].idxmax()
+            #         earn_high2 = int(((price_max2 - buy_p) / buy_p) * 100)
             #
-            #         print(earn_high, code, name, date, date2, max_date, int(present_p * infos['상장주식수'] / 100000000))
+            #         print(earn_high2, code, name, date, date2, max_date2, int(price['거래량'][idx_num2] / avg_vol[idx_num2]))
+
+
+            # for i in range(1,60):
+            #     idx_num2 = idx_num + i
+            #     price2 = price['종가'][idx_num2]
+            #     date2 = date_idx[idx_num2]
+            #
+            #     if price2 <= bollin_minus[idx_num2] \
+            #         :
+            #         buy_p = price['시가'][idx_num2 +1]
+            #         price_max2 = price['고가'][idx_num2+1:idx_num2+61].max()
+            #         max_date2 = price['고가'][idx_num2+1:idx_num2+61].idxmax()
+            #         earn_high2 = int(((price_max2 - buy_p) / buy_p) * 100)
+            #
+            #         print(earn_high2, code, name, date, date2, max_date2)
+
+
+
+            # for i in range(1, 60):
+            #     idx_num2 = idx_num + i
+            #     af_p_dt = price['저가'][idx_num:idx_num+60].idxmin()
+            #     af_p_dt_num = date_idx.index(af_p_dt)
+            #
+            #
+            #     if idx_num2 == af_p_dt_num \
+            #             :
+            #         date2 = date_idx[idx_num2]
+            #         buy_p = price['시가'][idx_num2 + 1]
+            #         price_max2 = price['고가'][idx_num2 + 1:idx_num2 + 61].max()
+            #         max_date2 = price['고가'][idx_num2 + 1:idx_num2 + 61].idxmax()
+            #         earn_high2 = int(((price_max2 - buy_p) / buy_p) * 100)
+            #
+            #         print(earn_high2, code, name, date, date2, max_date2)
+
+
+            # for i in range(1, 20):
+            #     idx_num2 = idx_num + i
+            #     date2 = date_idx[idx_num2]
+            #
+            #     if present_p > (price[['시가', '종가']][idx_num2 - 20:idx_num2].max()).max() \
+            #         and change >= 3 \
+            #         and price['거래량'][idx_num2] >= avg_vol[idx_num2 -1] * 3 \
+            #         :
+            #
+            #         buy_p = price['시가'][idx_num2 + 1]
+            #         price_max2 = price['고가'][idx_num2 + 1:idx_num2 + 61].max()
+            #         max_date2 = price['고가'][idx_num2 + 1:idx_num2 + 61].idxmax()
+            #         earn_high2 = int(((price_max2 - buy_p) / buy_p) * 100)
+            #
+            #         print(earn_high2, code, name, date, date2, max_date2)
+
+
+
 
             buy_p = price['종가'][idx_num +1]
 
-            df_after = price[idx_num + 1:idx_num + 40]  # 40일 이내로 한정
+            df_after = price[idx_num + 2:idx_num + 62]  # 40일 이내로 한정
+
             price_max = df_after['고가'].max()  # 222 최고가(고가기준)
             max_date = df_after['고가'].idxmax()  # 최고가 날자
             earn_high = int(((price_max - buy_p) / buy_p) * 100)  # 최고가(종가기준) 달성시 수익률
@@ -111,7 +193,8 @@ def cal_op21(code, date):
             ratio = int((move_vol/mkt_vol)*100)
             candle = int(((price['고가'][idx_num] - price['저가'][idx_num]) / price['저가'][idx_num])*100)
 
-            print(earn_high, code, name, date, max_date, ratio, change, candle)
+
+            print(earn_high, code, name, date, max_date, box)
 
     except:
         # print(code, date, "에러")
@@ -122,7 +205,7 @@ def cal_op21(code, date):
 
 
 if __name__ == "__main__":
-    dates = pd.read_excel('workingdays_201912.xlsx')['영업일']
+    dates = pd.read_excel('workingdays_201901.xlsx')['영업일']
     codes = pd.read_excel('코드리스트2.xlsx', converters={'종목코드':str})['종목코드']
 
     for date in dates:
