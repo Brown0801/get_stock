@@ -16,6 +16,15 @@ def cal_obv(code):
 
     return obv
 
+def get_index(market):
+    path = "./temp/index.db"
+    con = sqlite3.connect(path)
+    data = pd.read_sql("select * from " + market, con).set_index(['날짜'])
+
+    return data
+
+# get_index('KOSPI', '2020.01.30')
+
 
 def cal_op21(code, date):
 
@@ -31,20 +40,25 @@ def cal_op21(code, date):
 
         name = infos['종목명'][0]
         eps = infos['EPS'][0]
+        market = infos['시장구분'][0]
+        # index = get_index(market).sort_index(ascending=True)
+        # index_dt = index.index.tolist()
+        # idx_dt_num = index_dt.index(date)
+        # index_avg = index['체결가'].rolling(window=5).mean()
 
 
         #심리적 저점 기준점 구하기
 
-        # low_p_240 = price['종가'][idx_num-240:idx_num].sort_values(ascending=True)[0]   #당일을 포함하지 않는다 (포함시 idx_num +1 까지로 바꿔야함)
-        # low_d_240 = date_idx.index(price['종가'][idx_num-240:idx_num].sort_values(ascending=True).index[0])
-        # low_p_20 = price['종가'][idx_num-240:idx_num].sort_values(ascending=True)[1]
-        # low_d_20 = date_idx.index(price['종가'][idx_num-240:idx_num].sort_values(ascending=True).index[1])
+        low_p_240 = price['종가'][idx_num-240:idx_num].sort_values(ascending=True)[0]   #당일을 포함하지 않는다 (포함시 idx_num +1 까지로 바꿔야함)
+        low_d_240 = date_idx.index(price['종가'][idx_num-240:idx_num].sort_values(ascending=True).index[0])
+        low_p_20 = price['종가'][idx_num-240:idx_num].sort_values(ascending=True)[1]
+        low_d_20 = date_idx.index(price['종가'][idx_num-240:idx_num].sort_values(ascending=True).index[1])
 
 
-        low_p_240 = price['종가'][idx_num-240:idx_num].min()   #당일을 포함하지 않는다 (포함시 idx_num +1 까지로 바꿔야함)
-        low_d_240 = date_idx.index(price['종가'][idx_num-240:idx_num].idxmin())
-        low_p_20 = price['종가'][idx_num-20:idx_num].min()
-        low_d_20 = date_idx.index(price['종가'][idx_num-20:idx_num].idxmin())
+        # low_p_240 = price['종가'][idx_num-240:idx_num].min()   #당일을 포함하지 않는다 (포함시 idx_num +1 까지로 바꿔야함)
+        # low_d_240 = date_idx.index(price['종가'][idx_num-240:idx_num].idxmin())
+        # low_p_20 = price['종가'][idx_num-20:idx_num].min()
+        # low_d_20 = date_idx.index(price['종가'][idx_num-20:idx_num].idxmin())
 
         #주가평균선 구하기
         avg_5 = price['종가'].rolling(window=5).mean()
@@ -54,15 +68,15 @@ def cal_op21(code, date):
         avg_240 = price['종가'].rolling(window=240).mean()
 
 
-
-
         #심리적 저점 = low_p_240 보다는 위에, low_p_20 보다는 아래에
 
         #y = ax + b
 
-        present_p = price['종가'][idx_num]
-        past_p = price['종가'][idx_num -1]
+        present_p = price['종가'].iloc[idx_num]
+
+        past_p = price['종가'].iloc[idx_num -1]
         avg_vol = price['거래량'].rolling(window=20).mean()
+
 
         if (low_d_20 - low_d_240) == 0 :
             psy_low = low_p_240
@@ -86,22 +100,27 @@ def cal_op21(code, date):
 
         # obv = cal_obv(code)
 
-        box = int(((price['종가'][idx_num - 60: idx_num].max() - price['종가'][idx_num - 60: idx_num].min()) / price['종가'][
-                                                                                                           idx_num - 60: idx_num].min()) * 100)
+        # box = int(((price['종가'][idx_num - 60: idx_num].max() - price['종가'][idx_num - 60: idx_num].min()) / price['종가'][
+        #                                                                                                    idx_num - 60: idx_num].min()) * 100)
+
+        price['change'] = ((price['전일비'] /price['종가']) *100)
+        box_during = price['change'][idx_num -60 : idx_num]
+        box_max = box_during.max()
+
+        mkt_vol = int(present_p*infos['상장주식수']/100000000)
 
         #매수판단
         #             and present_p > price['고가'][idx_num-5:idx_num].max() \
 
-        if box <= 30 \
-            and present_p > price['종가'][idx_num - 60: idx_num].max() \
-            and price['거래량'][idx_num] >= avg_vol[idx_num -1] * 5 \
-            and a > 0 \
+
+
+        # if box <= 5 \
+        if present_p > price['종가'][idx_num - 20: idx_num].max() \
+            and price['거래량'].iloc[idx_num] >= avg_vol.iloc[idx_num] * 2 \
             and (present_p >= psy_low and present_p <= psy_high) \
-            and eps > 0 \
+            and a > 0 \
+            and mkt_vol < 100000000000 \
                 :
-
-
-
 
         # if eps > 0 \
         #     and (present_p >= psy_low and present_p <= psy_high) \
@@ -177,10 +196,7 @@ def cal_op21(code, date):
             #
             #         print(earn_high2, code, name, date, date2, max_date2)
 
-
-
-
-            buy_p = price['종가'][idx_num +1]
+            buy_p = price['종가'].iloc[idx_num +1]
 
             df_after = price[idx_num + 2:idx_num + 62]  # 40일 이내로 한정
 
@@ -188,13 +204,13 @@ def cal_op21(code, date):
             max_date = df_after['고가'].idxmax()  # 최고가 날자
             earn_high = int(((price_max - buy_p) / buy_p) * 100)  # 최고가(종가기준) 달성시 수익률
 
-            mkt_vol = int(present_p*infos['상장주식수']/100000000)
-            move_vol = int(infos['유동주식수']*present_p/100000000)
-            ratio = int((move_vol/mkt_vol)*100)
-            candle = int(((price['고가'][idx_num] - price['저가'][idx_num]) / price['저가'][idx_num])*100)
+            # mkt_vol = int(present_p*infos['상장주식수']/100000000)
+            # move_vol = int(infos['유동주식수']*present_p/100000000)
+            # ratio = int((move_vol/mkt_vol)*100)
+            # candle = int(((price['고가'][idx_num] - price['저가'][idx_num]) / price['저가'][idx_num])*100)
 
 
-            print(earn_high, code, name, date, max_date, box)
+            print(earn_high, code, name, date, max_date)
 
     except:
         # print(code, date, "에러")

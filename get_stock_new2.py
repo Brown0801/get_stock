@@ -14,9 +14,16 @@ def get_price(code):
         con = sqlite3.connect(path)
         price1 = pd.read_sql("SELECT * FROM price", con, index_col="날짜")
 
+        last_dt = datetime.strptime(price1.index[0], "%Y.%m.%d").date()
+        time_delta = (now.date() - last_dt).days
+
+        if time_delta <= 6:
+            pages = 3
+
+        else:
+            pages = 30
 
         #새 데이터 불러오기 (조금만)
-        pages = 3
         price2 = pd.DataFrame()
         for page in range(1, pages):
             url_price = 'https://finance.naver.com/item/sise_day.nhn?code=' + code
