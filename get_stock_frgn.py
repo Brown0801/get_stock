@@ -3,6 +3,9 @@ import parmap
 import sqlite3
 from datetime import datetime
 from tqdm import tqdm
+import multiprocessing
+
+num_cores = multiprocessing.cpu_count()
 
 def get_frgn(code):
     now = datetime.now()
@@ -78,12 +81,12 @@ def get_frgn(code):
 
 
     except:
-        pages = 10
+        pages = 1000
 
         frgn1 = pd.DataFrame()
 
-        for page in tqdm(range(1, pages), mininterval=1, desc=code):
-        # for page in range(1, pages):
+        # for page in tqdm(range(1, pages), mininterval=1, desc=code):
+        for page in range(1, pages):
 
             # try:
             url_frgn = 'https://finance.naver.com/item/frgn.nhn?code=' + code
@@ -130,5 +133,5 @@ if __name__ == '__main__':
     codes = pd.read_excel('코드리스트2.xlsx', converters={'종목코드': str})
     code = codes['종목코드']
 
-    parmap.map(get_frgn, code, pm_pbar=True)
-    # parmap.map(del_frgn, code, pm_pbar=True)
+    parmap.map(get_frgn, code, pm_pbar=True, pm_processes=num_cores)
+    # parmap.map(del_frgn, code, pm_pbar=True, pm_processes=num_cores)

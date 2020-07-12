@@ -2,6 +2,9 @@ import pandas as pd
 import sqlite3
 from tqdm import tqdm
 from datetime import datetime
+import multiprocessing
+
+num_cores = multiprocessing.cpu_count()
 
 
 # a = datetime.strptime("2020.01.30", "%Y.%m.%d").date()

@@ -4,6 +4,9 @@ import itertools
 import sqlite3
 from tqdm import tqdm
 from datetime import datetime
+import multiprocessing
+
+num_cores = multiprocessing.cpu_count()
 
 
 def get_price(code):
@@ -97,4 +100,4 @@ if __name__ == '__main__':
     codes = pd.read_excel('코드리스트2.xlsx', converters={'종목코드': str})
     code = codes['종목코드']
 
-    parmap.map(get_price, code, pm_pbar=True)
+    parmap.map(get_price, code, pm_pbar=True, pm_processes=num_cores)
