@@ -37,9 +37,13 @@ def cal_op21(code, date):
 
         price = pd.read_sql("select * from price", con, index_col="날짜").sort_index(ascending=True)
         infos = pd.read_sql("select * from infos", con)
+        frgn = pd.read_sql("select * from frgn", con, index_col="날짜").sort_index(ascending=True)
 
         date_idx = price.index.tolist()
         idx_num = date_idx.index(date)
+
+        date_idx2 = frgn.index.tolist()
+        idx_num2 = date_idx2.index(date)
 
         name = infos['종목명'][0]
         eps = infos['EPS'][0]
@@ -49,6 +53,13 @@ def cal_op21(code, date):
         # index_dt = index.index.tolist()
         # idx_dt_num = index_dt.index(date)
         # index_avg = index['체결가'].rolling(window=5).mean()
+
+        eidt = lambda x: float(x.replace('%', ''))
+        frgn['등락률'] = frgn['등락률'].apply(eidt)
+        edit2 = lambda x: float(x.replace(",", ""))
+        frgn['기관'] = frgn['기관'].apply(edit2)
+        frgn['외국인'] = frgn['외국인'].apply(edit2)
+        # frgn['외국인보유율'] = frgn['외국인보유율'].apply(edit)
 
 
         #심리적 저점 기준점 구하기
@@ -225,7 +236,8 @@ def cal_op21(code, date):
             # candle = int(((price['고가'][idx_num] - price['저가'][idx_num]) / price['저가'][idx_num])*100)
 
 
-            print(earn_high, code, name, date, max_date)
+            print(earn_high, code, name, date, max_date, frgn['등락률'][date], frgn['외국인'][idx_num2-59:idx_num2+1].sum(), frgn['기관'][idx_num2 -59:idx_num2 +1].sum())
+
 
 
     except:
@@ -233,7 +245,7 @@ def cal_op21(code, date):
         pass
 
 
-# cal_op21('095570', '2019.12.02')
+# cal_op21('065680', '2019.12.11')
 
 
 if __name__ == "__main__":

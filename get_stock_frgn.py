@@ -13,10 +13,11 @@ def get_frgn(code):
     try:
         path = "./temp/" + str(code) + ".db"
         con = sqlite3.connect(path)
-        frgn1 = pd.read_sql("SELECT * FROM frgn", con, index_col="날짜").sort_index(ascending=False)
+        frgn1 = pd.read_sql("SELECT * FROM frgn", con).sort_values(['날짜'], ascending=False)
+        frgn1 = frgn1.drop_duplicates(['날짜'], keep='first')
+        # frgn1 = frgn1.set_index(['날짜'])
 
-
-        last_dt = datetime.strptime(frgn1.index[0], "%Y.%m.%d").date()
+        last_dt = datetime.strptime(frgn1['날짜'].iloc[0], "%Y.%m.%d").date()
         time_delta = (now.date() - last_dt).days
 
         if time_delta <= 6 :
@@ -33,51 +34,34 @@ def get_frgn(code):
             frgn = pd.read_html(pg_url, header=1, encoding='euc-kr')[2]
             frgn2 = frgn2.append(frgn).dropna()
 
-        frgn2 = frgn2.set_index(['날짜'])
+        # frgn2 = frgn2.set_index(['날짜'])
         frgn2.rename(columns={'순매매량':'기관', '순매매량.1':'외국인', '보유주수':'외국인보유주수', '보유율':'외국인보유율'}, inplace = True)
+        frgn2 = frgn2.sort_values(['날짜'], ascending=False)
 
-        if frgn2.index[0] == now.strftime("%Y.%m.%d"):
+        if frgn2['날짜'].iloc[0] == now.strftime("%Y.%m.%d"):
             if now.hour < 19:
                 frgn2 = frgn2[1:]
                 frgn1 = frgn1.append(frgn2)
-                frgn1 = frgn1.drop_duplicates()
-                frgn1 = frgn1.sort_index(ascending=False)
+                frgn1 = frgn1.sort_values(['날짜'], ascending=False)
+                frgn1 = frgn1.drop_duplicates(['날짜'], keep='first')
+                frgn1 = frgn1.set_index(['날짜'])
                 frgn1.to_sql('frgn', con, if_exists='replace')
+
 
             else:
                 frgn1 = frgn1.append(frgn2)
-                frgn1 = frgn1.drop_duplicates()
-                frgn1 = frgn1.sort_index(ascending=False)
+                frgn1 = frgn1.sort_values(['날짜'], ascending=False)
+                frgn1 = frgn1.drop_duplicates(['날짜'], keep='first')
+                frgn1 = frgn1.set_index(['날짜'])
                 frgn1.to_sql('frgn', con, if_exists='replace')
+
 
         else:
             frgn1 = frgn1.append(frgn2)
-            frgn1 = frgn1.drop_duplicates()
-            frgn1 = frgn1.sort_index(ascending=False)
+            frgn1 = frgn1.sort_values(['날짜'], ascending=False)
+            frgn1 = frgn1.drop_duplicates(['날짜'], keep='first')
+            frgn1 = frgn1.set_index(['날짜'])
             frgn1.to_sql('frgn', con, if_exists='replace')
-
-
-
-
-            if frgn2.index[0] == now.strftime("%Y.%m.%d"):
-                if now.hour < 19:
-                    frgn2 = frgn2[1:]
-                    frgn1 = frgn1.append(frgn2)
-                    frgn1 = frgn1.drop_duplicates()
-                    frgn1 = frgn1.sort_index(ascending=False)
-                    frgn1.to_sql('frgn', con, if_exists='replace')
-
-                else:
-                    frgn1 = frgn1.append(frgn2)
-                    frgn1 = frgn1.drop_duplicates()
-                    frgn1 = frgn1.sort_index(ascending=False)
-                    frgn1.to_sql('frgn', con, if_exists='replace')
-
-            else:
-                frgn1 = frgn1.append(frgn2)
-                frgn1 = frgn1.drop_duplicates()
-                frgn1 = frgn1.sort_index(ascending=False)
-                frgn1.to_sql('frgn', con, if_exists='replace')
 
 
     except:
@@ -85,8 +69,8 @@ def get_frgn(code):
 
         frgn1 = pd.DataFrame()
 
-        # for page in tqdm(range(1, pages), mininterval=1, desc=code):
-        for page in range(1, pages):
+        for page in tqdm(range(1, pages), mininterval=1, desc=code):
+        # for page in range(1, pages):
 
             # try:
             url_frgn = 'https://finance.naver.com/item/frgn.nhn?code=' + code
@@ -124,14 +108,26 @@ def del_frgn(code):
         pass
 
 
+def trans_float(code):
+    path = "./temp/" + str(code) + ".db"
+    con = sqlite3.connect(path)
+    frgn1 = pd.read_sql("SELECT * FROM frgn", con).sort_values(['날짜'], ascending=False)
+
+    edit = lambda x:float(x.replace(",", ""))
+    frgn1['기관'] = frgn1['기관'].apply(edit)
+
+    print(frgn1)
+
+
 # get_frgn('095570')
 # del_frgn('095570')
+trans_float('095570')
 
 
-if __name__ == '__main__':
-
-    codes = pd.read_excel('코드리스트2.xlsx', converters={'종목코드': str})
-    code = codes['종목코드']
-
-    parmap.map(get_frgn, code, pm_pbar=True, pm_processes=num_cores)
-    # parmap.map(del_frgn, code, pm_pbar=True, pm_processes=num_cores)
+# if __name__ == '__main__':
+#
+#     codes = pd.read_excel('코드리스트2.xlsx', converters={'종목코드': str})
+#     code = codes['종목코드']
+#
+#     parmap.map(get_frgn, code, pm_pbar=True, pm_processes=num_cores)
+#     # parmap.map(del_frgn, code, pm_pbar=True, pm_processes=num_cores)
